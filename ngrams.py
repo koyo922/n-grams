@@ -9,7 +9,6 @@ from copy import copy
 from math import log10, isnan
 from collections import Counter, OrderedDict, defaultdict, deque
 
-
 """
 @description    n-grams, perplexity, and perplexity-based classification
 @author         Favian Contreras <fnc4@cornell.edu>
@@ -23,6 +22,7 @@ class Wrapper:
     of overriding built-ins (as it only shows as faster when done
     over a million times).
     """
+
     def __init__(self):
         self.datum = None
 
@@ -97,14 +97,14 @@ class Ngrams:
         if self.python2:
             range_wrap = xrange
             punct = (string.punctuation.replace("?", "").replace("'", "").
-                                        replace("!", "").replace(".", ""))
+                     replace("!", "").replace(".", ""))
             with open(filename, 'r') as text:
                 tokens = unicode(text.read(), errors='replace')
 
         else:
             range_wrap = range
             punct = string.punctuation.translate(str.maketrans(
-                                                 "", "", ".?!'"))
+                "", "", ".?!'"))
             with open(filename, 'r', errors="replace") as text:
                 tokens = text.read()
 
@@ -120,7 +120,7 @@ class Ngrams:
             self.unk_token += '>'
 
         begin_tokens = ""
-        for i in range_wrap(n-1):
+        for i in range_wrap(n - 1):
             begin_tokens += ' ' + self.start_token
         self.bg_tks = begin_tokens
 
@@ -178,7 +178,7 @@ class Ngrams:
             # Put the leftover start tokens in the beginning
             tmp = string.split()
             tokens = []
-            for i in range_wrap(n-1):
+            for i in range_wrap(n - 1):
                 tokens.append(tmp.pop())
             tokens.extend(tmp)
 
@@ -202,7 +202,7 @@ class Ngrams:
                   "than the other.")
         last_pos = -1
         for _ in range_wrap(num_features):
-            last_pos = tokens[0].find(',', last_pos+1)
+            last_pos = tokens[0].find(',', last_pos + 1)
             if last_pos == -1:
                 self.error_handler(5)
 
@@ -218,19 +218,19 @@ class Ngrams:
             end_comma = -1
             for _ in range_wrap(self.feature_num):
                 begin_comma = end_comma
-                end_comma = line.find(',', end_comma+1)
+                end_comma = line.find(',', end_comma + 1)
                 if end_comma == -1:
                     self.error_handler(5)
 
             # Find last comma in the line
             last_comma = end_comma
-            for _ in range_wrap(self.num_features-self.feature_num):
-                last_comma = line.find(',', last_comma+1)
+            for _ in range_wrap(self.num_features - self.feature_num):
+                last_comma = line.find(',', last_comma + 1)
                 if last_comma == -1:
                     self.error_handler(5)
 
-            clas = line[begin_comma+1:end_comma].strip()
-            class_sets[clas].extend(line[last_comma+2:].split())
+            clas = line[begin_comma + 1:end_comma].strip()
+            class_sets[clas].extend(line[last_comma + 2:].split())
 
         if len(class_sets) == 1:
             self.error_handler(6)
@@ -239,6 +239,7 @@ class Ngrams:
     """
     Get total counts, and word frequency dictionaries.
     """
+
     def uni_count_pairs(self, tokens, n, unk):
         self.total_words = len(tokens)
         word_freq_pairs = dict.fromkeys(tokens, 0)
@@ -323,7 +324,7 @@ class Ngrams:
 
         word_freq_pairs = {word: defaultdict(int) for word in self.total_words}
         for i, token in enumerate(tokens[:-1]):
-            word_freq_pairs[token][tokens[i+1]] += 1
+            word_freq_pairs[token][tokens[i + 1]] += 1
 
         return (self.bottom_unk_tokenize(word_freq_pairs, self.n) if unk else
                 word_freq_pairs)
@@ -333,6 +334,7 @@ class Ngrams:
     dicts). Takes in the dicts so far, and the current word, along
     with the next n-1 words. O(1) space extra space.
     """
+
     def dict_creator(self, freq_dict, wrd, words):
         if words:
             freq_tmp = freq_dict
@@ -363,7 +365,6 @@ class Ngrams:
                 freq_tmp[words[-2]] = defaultdict(int)
             freq_tmp[words[-2]][words[-1]] += 1
 
-
     def n_count_pairs(self, tokens, n, unk):
         if unk:
             # Replace low-freq top-level tokens with unks
@@ -383,7 +384,7 @@ class Ngrams:
         for i, token in enumerate(tokens[:-self.n]):
             self.dict_creator(word_freq_pairs[token], token, words_infront)
             del words_infront[0]
-            words_infront.append(tokens[i+self.n])
+            words_infront.append(tokens[i + self.n])
         token = tokens[-self.n]
         self.dict_creator(word_freq_pairs[token], token, words_infront)
 
@@ -393,6 +394,7 @@ class Ngrams:
     """
     Computes MLE probability distributions.
     """
+
     def unsmoothed_unigrams(self, word_freq_pairs):
         prob_dict = word_freq_pairs
         items = prob_dict.iteritems() if self.python2 else prob_dict.items()
@@ -432,11 +434,12 @@ class Ngrams:
     """
     Computes Laplace smoothed probability distributions.
     """
+
     def laplace_unigrams(self, word_freq_pairs, total_words, V):
         prob_dict = word_freq_pairs
         items = prob_dict.iteritems() if self.python2 else prob_dict.items()
         for word, count in items:
-            prob_dict[word] = (count+self.alpha) / (total_words+V)
+            prob_dict[word] = (count + self.alpha) / (total_words + V)
 
         self.unigrams = prob_dict
 
@@ -456,8 +459,8 @@ class Ngrams:
                     nxt_lvl_items = (nxt_lvl_dict.iteritems() if self.python2
                                      else nxt_lvl_dict.items())
                     for bot_word, cnt in nxt_lvl_items:
-                        nxt_lvl_dict[bot_word] = ((cnt+alpha) /
-                                                  (total_words[top_word]+V))
+                        nxt_lvl_dict[bot_word] = ((cnt + alpha) /
+                                                  (total_words[top_word] + V))
             else:
                 my_n -= 1
                 for word in word_freq_pairs:
@@ -472,6 +475,7 @@ class Ngrams:
     Creates a dict of how many times a word of a certain frequency occurs.
     Then gets probabilty distributions from good turing smoothing.
     """
+
     def occurrenceToUniTuring(self, word_freq_pairs, total_words):
         if self.python2:
             range_wrap = xrange
@@ -480,7 +484,7 @@ class Ngrams:
             range_wrap = range
             values = word_freq_pairs.values()
 
-        occurence_map = OrderedDict.fromkeys(range_wrap(1, max(values)+2), 0)
+        occurence_map = OrderedDict.fromkeys(range_wrap(1, max(values) + 2), 0)
 
         values = (word_freq_pairs.itervalues() if self.python2 else
                   word_freq_pairs.values())
@@ -489,7 +493,7 @@ class Ngrams:
         if word_freq_pairs[self.unk_token] <= self.threshold:
             occurence_map[word_freq_pairs[self.unk_token]] = 1
 
-        #fill in the levels with 0 words
+        # fill in the levels with 0 words
         last_val = 1
         list_wrap = (lambda x: x) if self.python2 else list
         for key, value in reversed(list_wrap(occurence_map.items())):
@@ -504,7 +508,7 @@ class Ngrams:
         prob_dict = word_freq_pairs
         items = prob_dict.iteritems() if self.python2 else prob_dict.items()
         for word, count in items:
-            prob_dict[word] = ((count+1) * uni_ocm[count+1] / uni_ocm[count] /
+            prob_dict[word] = ((count + 1) * uni_ocm[count + 1] / uni_ocm[count] /
                                total_words)
 
         self.unigrams = prob_dict
@@ -529,7 +533,7 @@ class Ngrams:
                 nxt_lvl_vals = (nxt_lvl_dict.itervalues() if self.python2 else
                                 nxt_lvl_dict.values())
                 top = max(nxt_lvl_vals)
-                occurence_map[wrd] = OrderedDict.fromkeys(range_wrap(1, top+2),
+                occurence_map[wrd] = OrderedDict.fromkeys(range_wrap(1, top + 2),
                                                           0)
 
                 nxt_lvl_vals = (nxt_lvl_dict.itervalues() if self.python2 else
@@ -559,16 +563,17 @@ class Ngrams:
             nxt_lvl_items = (nxt_lvl_dict.iteritems() if self.python2 else
                              nxt_lvl_dict.items())
             for w_infront, cnt in nxt_lvl_items:
-                nxt_lvl_dict[w_infront] = ((cnt+1) * bi_ocm[w][cnt+1] /
+                nxt_lvl_dict[w_infront] = ((cnt + 1) * bi_ocm[w][cnt + 1] /
                                            bi_ocm[w][cnt] / total_words[w])
         self.bigrams = prob_dict
 
     """
     Generates sentences based on probability distributions.
     """
+
     def generateSentence(self, n):
         sentence = []
-        words = [self.start_token] * (n-1)
+        words = [self.start_token] * (n - 1)
         if n == 1:
             ngrams = self.unigrams
         elif n == 2:
@@ -617,15 +622,15 @@ class Ngrams:
             thresh = self.threshold
             for token in tokens:
                 entropy -= log10(unigrams.get(token, uni_ocm[thresh] /
-                                                     train_len))
+                                              train_len))
         else:
             if not V:
                 V = self.types
             alpha = self.alpha
             for token in tokens:
-                entropy -= log10(unigrams.get(token, alpha / (train_len+V)))
+                entropy -= log10(unigrams.get(token, alpha / (train_len + V)))
 
-        return 10**(entropy / (len(tokens) - (self.n-1)))
+        return 10 ** (entropy / (len(tokens) - (self.n - 1)))
 
     def bi_perplex(self, tokens, gts, bigram=None,
                    tw=None, bi_ocm=None, V=None):
@@ -643,10 +648,10 @@ class Ngrams:
             for token in tokens:
                 if prev_t in bigram:
                     entropy -= log10(bigram[prev_t].get(token,
-                                     bi_ocm[prev_t][thresh] / tw[prev_t]))
+                                                        bi_ocm[prev_t][thresh] / tw[prev_t]))
                 else:
                     entropy -= log10(bigram[ut].get(token,
-                                     bi_ocm[ut][thresh] / tw[ut]))
+                                                    bi_ocm[ut][thresh] / tw[ut]))
                 prev_t = token
         else:
             if not V:
@@ -655,13 +660,13 @@ class Ngrams:
             for token in tokens:
                 if prev_t in bigram:
                     entropy -= log10(bigram[prev_t].get(token, alpha /
-                                                        (tw[prev_t]+V)))
+                                                        (tw[prev_t] + V)))
                 else:
-                    entropy -= log10(bigram[ut].get(token, alpha / (tw[ut]+V)))
+                    entropy -= log10(bigram[ut].get(token, alpha / (tw[ut] + V)))
 
                 prev_t = token
 
-        return 10**(entropy / (len(tokens) - (self.n-1)))
+        return 10 ** (entropy / (len(tokens) - (self.n - 1)))
 
     """
     def sum_count(self, p):
@@ -678,12 +683,12 @@ class Ngrams:
         help_dict = ngrams
         if n == 1:
             return log10(help_dict.get(tokens[0], self.alpha /
-                                                  (total_words+types)))
+                                       (total_words + types)))
 
         nxt_token = tokens.popleft()
         if nxt_token in help_dict:
             return self.n_laplace_perplex(tokens, help_dict[nxt_token],
-                                          total_words[nxt_token], types, n-1)
+                                          total_words[nxt_token], types, n - 1)
         """
         if hash(''.join(help_dict.keys())) in sum_dict:
             total = sum_dict[hash(''.join(help_dict.keys()))]
@@ -696,7 +701,7 @@ class Ngrams:
 
     def n_laplace_perplex_help(self, tokens, n,
                                ngram=None, tw=None, types=None):
-        #sum_dict = {}
+        # sum_dict = {}
         if not ngram:
             types = self.types
             ngram = self.ngrams
@@ -709,10 +714,10 @@ class Ngrams:
         for i in range_wrap(num_tokens - n):
             entropy -= self.n_laplace_perplex(copy(words), ngram, tw, types, n)
             del words[0]
-            words.append(tokens[i+n])
+            words.append(tokens[i + n])
         entropy -= self.n_laplace_perplex(words, ngram, tw, types, n)
 
-        return 10**(entropy / (num_tokens - (n-1)))
+        return 10 ** (entropy / (num_tokens - (n - 1)))
 
 
 def parse_args():
@@ -946,11 +951,11 @@ def main():
         for line in test_t:
             last_comma = -1
             for _ in range_wrap(model.num_features):
-                last_comma = line.find(',', last_comma+1)
+                last_comma = line.find(',', last_comma + 1)
                 if last_comma == -1:
                     model.error_handler(5)
 
-            t_arg.set_datum(line[last_comma+2:].split())
+            t_arg.set_datum(line[last_comma + 2:].split())
 
             # Compare perplexities
             low = [None, float('inf')]
@@ -967,6 +972,7 @@ def main():
 
         with open(opts.output_file, 'w') as guesses:
             guesses.write('\n'.join(predictions))
+
 
 if __name__ == '__main__':
     main()
